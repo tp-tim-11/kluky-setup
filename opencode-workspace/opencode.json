@@ -1,0 +1,10 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "kluky": {
+      "type": "local",
+      "command": ["uv", "run", "--directory", "../kluky_mcp", "--python", "3.13", "-m", "kluky_mcp.server"],
+      "enabled": true
+    }
+  }
+}
