@@ -219,6 +219,20 @@ fi
 # --- Install cron ---
 install_google_sync_cron
 
+# --- Generate opencode.json with absolute paths ---
+cat > "$LAUNCHER_DIR/opencode-workspace/opencode.json" <<OJSON
+{
+  "\$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "kluky": {
+      "type": "local",
+      "command": ["uv", "run", "--directory", "$LAUNCHER_DIR/kluky_mcp", "--python", "3.13", "-m", "kluky_mcp.server"],
+      "enabled": true
+    }
+  }
+}
+OJSON
+
 # --- Open OpenCode TUI in a new Terminal window ---
 echo "Opening OpenCode TUI on port $OPENCODE_PORT..."
 if ! is_listening "$OPENCODE_HOST" "$OPENCODE_PORT"; then
