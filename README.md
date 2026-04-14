@@ -13,9 +13,9 @@ chmod +x install.sh start.sh stop.sh
 
 After install completes:
 
-1. Edit `.env` and fill in your API keys
-2. Run `./start.sh`
-3. In the OpenCode terminal that opens, run `/connect` to set up your LLM provider and choose a model (first time only)
+1. Edit `.env.example` and fill in your API keys
+2. Rename `.env.example` to `.env`
+3. Run `./start.sh`
 
 ## Daily Usage
 
@@ -51,8 +51,19 @@ Edit `.env` for API keys. All paths are handled automatically.
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | OpenAI API |
+| `OPENAI_API_KEY` | Yes | OpenAI API for indexer |
 | `ELEVENLABS_API_KEY` | Yes | ElevenLabs API key for TTS and STT |
-| `ELEVENLABS_VOICE_ID` | No | Custom voice ID |
-| `ELEVENLABS_MODEL_ID` | No | Custom TTS model |
-| `STT_LANGUAGE` | No | Language code (default: sk) |
+| `DB_PASSWORD` | Yes | Password for supabase DB |
+| `GOOGLE_DRIVE_DOCUMENTS_FOLDER_ID` | Yes | Folder id of googledrive docs |
+| `GOOGLE_SHEETS_RANGE` | Yes | Range for google sheets |
+| `GOOGLE_SHEETS_ID` | Yes | Id of google sheets |
+
+## Custom OpenAI-compatible provider
+
+If you decide to fill in custom provider you have to also fill all of these variables as well.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENCODE_PROVIDER_BASE_URL` | Optional | Base url of provider |
+| `OPENCODE_PROVIDER_MODELS` | Optional | Model names, separated with comma |
+| `OPENCODE_PROVIDER_API_KEY` | Optional | Api key for provider |
