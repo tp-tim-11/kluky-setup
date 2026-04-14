@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Read(//c/Users/Asus/kluky_mcp//**)",
-      "Read(//asus/**)"
-    ]
-  }
-}
