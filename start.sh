@@ -40,6 +40,68 @@ if [[ -z "${ELEVENLABS_API_KEY:-}" ]]; then
   exit 1
 fi
 
+# --- Configure opencode.json custom provider from .env ---
+configure_opencode_provider() {
+  local config_file="$LAUNCHER_DIR/opencode-workspace/opencode.json"
+  if [[ ! -f "$config_file" ]]; then
+    echo "WARNING: opencode.json not found at $config_file, skipping provider config."
+    return 0
+  fi
+
+  local base_url="${OPENCODE_PROVIDER_BASE_URL:-}"
+  local models="${OPENCODE_PROVIDER_MODELS:-}"
+  local api_key="${OPENCODE_PROVIDER_API_KEY:-}"
+
+  if [[ -z "$base_url" ]]; then
+    echo "No OPENCODE_PROVIDER_BASE_URL set; leaving opencode.json untouched."
+    echo "Connect a provider through the OpenCode TUI if needed."
+    return 0
+  fi
+
+  if [[ -z "$models" ]]; then
+    echo "ERROR: OPENCODE_PROVIDER_BASE_URL is set but OPENCODE_PROVIDER_MODELS is empty."
+    echo "       Provide a comma-separated list of model IDs."
+    exit 1
+  fi
+
+  if [[ -z "$api_key" ]]; then
+    echo "ERROR: OPENCODE_PROVIDER_BASE_URL is set but OPENCODE_PROVIDER_API_KEY is empty."
+    echo "       Provide the API key for your OpenAI-compatible endpoint."
+    exit 1
+  fi
+
+  python3 - "$config_file" "$base_url" "$models" "$api_key" <<'PY'
+import json, sys
+path, base_url, models, api_key = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+with open(path, "r", encoding="utf-8") as f:
+    config = json.load(f)
+
+model_list = [m.strip() for m in models.split(",") if m.strip()]
+if not model_list:
+    sys.exit("ERROR: OPENCODE_PROVIDER_MODELS contains no valid model IDs.")
+
+providers = config.setdefault("provider", {})
+providers["my-custom-provider"] = {
+    "npm": "@ai-sdk/openai-compatible",
+    "name": "My Custom Provider",
+    "options": {
+        "baseURL": base_url,
+        "apiKey": api_key,
+    },
+    "models": {m: {"name": m} for m in model_list},
+}
+config["model"] = f"my-custom-provider/{model_list[0]}"
+
+with open(path, "w", encoding="utf-8") as f:
+    json.dump(config, f, indent=2)
+    f.write("\n")
+PY
+
+  echo "Added 'my-custom-provider' to opencode.json at $base_url with models: $models"
+  echo "Default model set to my-custom-provider/${models%%,*}"
+}
+configure_opencode_provider
+
 # --- Helpers ---
 is_listening() {
   nc -z "$1" "$2" 2>/dev/null
@@ -219,19 +281,6 @@ fi
 # --- Install cron ---
 install_google_sync_cron
 
-# --- Generate opencode.json with absolute paths ---
-cat > "$LAUNCHER_DIR/opencode-workspace/opencode.json" <<OJSON
-{
-  "\$schema": "https://opencode.ai/config.json",
-  "mcp": {
-    "kluky": {
-      "type": "local",
-      "command": ["uv", "run", "--directory", "$LAUNCHER_DIR/kluky_mcp", "--python", "3.13", "-m", "kluky_mcp.server"],
-      "enabled": true
-    }
-  }
-}
-OJSON
 
 # --- Open OpenCode TUI in a new Terminal window ---
 echo "Opening OpenCode TUI on port $OPENCODE_PORT..."
