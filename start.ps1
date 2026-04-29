@@ -256,11 +256,32 @@ try {
     Write-Host "Opening OpenCode TUI on port $OpencodePort..."
     if (-not (Test-Port $OpencodeHostName $OpencodePort)) {
         $workspace = Join-Path $Root 'opencode-workspace'
-        $launchCmd = "Set-Location -LiteralPath '$workspace'; opencode --port $OpencodePort"
+
+        # Refresh PATH from the registry so opencode (added by its installer to the
+        # User PATH) resolves even if this shell was opened before install.ps1 ran.
+        $machinePath = [Environment]::GetEnvironmentVariable('Path', 'Machine')
+        $userPath    = [Environment]::GetEnvironmentVariable('Path', 'User')
+        if ($machinePath -or $userPath) {
+            $env:Path = @($machinePath, $userPath, $env:Path) -ne '' -join ';'
+        }
+
+        $opencodeCmd = Get-Command opencode -ErrorAction SilentlyContinue
+        if (-not $opencodeCmd) {
+            Write-Host 'ERROR: opencode is not on PATH.'
+            Write-Host '       Open a new terminal (so the installer''s PATH update takes effect) or re-run .\install.ps1.'
+            exit 1
+        }
+        $opencodeExe = $opencodeCmd.Source
+
+        # NOTE: do not put a `;` inside the wt.exe command string — Windows Terminal
+        # parses `;` as its own tab/pane separator and swallows everything after it,
+        # so the spawned shell never sees the actual command. Use `wt -d <dir>` to
+        # set the working directory instead, leaving a single command for powershell.
+        $innerCmd = "& `"$opencodeExe`" --port $OpencodePort"
         if (Get-Command wt.exe -ErrorAction SilentlyContinue) {
-            Start-Process wt.exe -ArgumentList @('powershell', '-NoExit', '-Command', $launchCmd) | Out-Null
+            Start-Process wt.exe -ArgumentList @('-d', $workspace, 'powershell', '-NoExit', '-Command', $innerCmd) | Out-Null
         } else {
-            Start-Process powershell -ArgumentList @('-NoExit', '-Command', $launchCmd) | Out-Null
+            Start-Process powershell -WorkingDirectory $workspace -ArgumentList @('-NoExit', '-Command', $innerCmd) | Out-Null
         }
         Write-Host 'Waiting for OpenCode to start (up to 45s)...'
         if (-not (Wait-Port $OpencodeHostName $OpencodePort 45)) {
