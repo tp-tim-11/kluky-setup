@@ -1,0 +1,79 @@
+# docker-compose.yml — runs the Windows install/start scripts inside a real
+# Windows 11 VM via dockurr/windows (Windows-in-a-Linux-container, QEMU/KVM).
+#
+# Why not microsoft/windows: that image is a Windows *container* base; it
+# can't pass through audio/USB so a mic never reaches the guest. dockurr/windows
+# is a full VM, so /dev/snd reaches Windows as a real audio device.
+#
+# Host requirements (Linux):
+#   - KVM enabled (`/dev/kvm` exists, user in `kvm` group)
+#   - Docker / Docker Compose v2
+#   - ~12 GB free RAM (8 GB allocated to the VM by default)
+#   - ~70 GB free disk for the Windows install + storage
+#
+# First run (~10–15 min):
+#   1. docker compose up -d
+#   2. Open http://localhost:8006 in a browser to watch Windows install itself.
+#   3. Once at the Windows desktop, open PowerShell as Administrator and run:
+#         net use Z: \\host.lan\Data
+#         cd Z:\
+#         powershell -ExecutionPolicy Bypass -File .\install.ps1
+#         # edit .env (Z:\.env on host == ./.env on this machine)
+#         .\start.ps1
+#
+# Microphone:
+#   /dev/snd is mapped through. dockurr passes audio to QEMU's ICH9 codec, which
+#   Windows sees as a standard HD Audio device. If the mic doesn't appear in
+#   Windows Sound settings:
+#     - confirm the host mic works (`arecord -l`, `pactl list sources short`)
+#     - ensure your user is in the `audio` group
+#     - if the host runs PipeWire/PulseAudio, uncomment the PulseAudio block
+#       below instead of /dev/snd
+
+services:
+  windows:
+    image: dockurr/windows
+    container_name: kluky-windows
+
+    environment:
+      VERSION: "11"
+      RAM_SIZE: "8G"
+      CPU_CORES: "4"
+      DISK_SIZE: "64G"
+      USERNAME: kluky
+      PASSWORD: kluky
+      # Region/locale tweaks if needed:
+      # LANGUAGE: "English"
+      # KEYBOARD: "en-US"
+      # REGION: "en-US"
+
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+      - /dev/snd            # ALSA audio bus → mic + speakers in the VM
+
+    cap_add:
+      - NET_ADMIN
+
+    ports:
+      - "8006:8006"          # Web viewer (browser-based VNC)
+      - "3389:3389/tcp"      # RDP
+      - "3389:3389/udp"
+
+    volumes:
+      - ./.windows-storage:/storage   # persistent Windows VM disk (created on first run)
+      - ./:/data                      # this repo, exposed inside Windows as \\host.lan\Data
+
+    stop_grace_period: 2m
+    restart: unless-stopped
+
+    # --- Alternative audio path: PulseAudio/PipeWire socket instead of /dev/snd ---
+    # Comment out the `/dev/snd` line above and uncomment the four lines below.
+    # Then `xhost +SI:localuser:$(id -un)` is NOT needed (no X), but you do need
+    # `pactl load-module module-native-protocol-unix socket=/tmp/pulse-socket`
+    # exported on the host beforehand.
+    #
+    # environment:
+    #   PULSE_SERVER: unix:/tmp/pulse-socket
+    # volumes:
+    #   - /tmp/pulse-socket:/tmp/pulse-socket
