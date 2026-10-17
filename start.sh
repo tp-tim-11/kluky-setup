@@ -145,7 +145,7 @@ install_google_sync_cron() {
   bash_bin="$(command -v bash)"
 
   local inner
-  inner="cd \"$project_dir\" && \"$uv_bin\" run google_workspace_sync sync --mode all >> \"$log_dir/all-sync.log\" 2>&1"
+  inner="cd \"$project_dir\" && \"$uv_bin\" run google-workspace-sync sync --mode all >> \"$log_dir/all-sync.log\" 2>&1"
 
   local locked_inner
   locked_inner="mkdir $lock_dir 2>/dev/null || exit 0; trap \"rmdir $lock_dir\" EXIT; $inner"
@@ -257,7 +257,7 @@ if [[ -z "$SHEET_PUSH_PID" ]]; then
   if [[ -d "$GOOGLE_WORKSPACE_SYNC_DIR" ]]; then
     (
       cd "$GOOGLE_WORKSPACE_SYNC_DIR"
-      exec uv run google_workspace_sync watch-sheet-push \
+      exec uv run google-workspace-sync watch-sheet-push \
         > "$SHEET_PUSH_LOG_FILE" 2>&1
     ) &
     SHEET_PUSH_PID="$!"
