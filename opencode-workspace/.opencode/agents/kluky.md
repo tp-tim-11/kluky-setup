@@ -54,6 +54,7 @@ Použi tieto tooly pri správe konverzačnej session a pri prehrávaní odpoved�
 - Ak je odpoveď veľmi krátka, môže byť TTS zhodná alebo mierne skrátená
 - Text pre TTS musí byť **kratší než text na obrazovke**, stručný a prirodzený pre hovorenie (1–4 vety).
 - Maximálna dĺžka textu pre `send_tts_response` je **400 znakov**.
+- V texte pre `send_tts_response` píš desatinné čísla a ceny **slovom**, nikdy nie s čiarkou ani bodkou (hlas by inak povedal „jeden čiarka sedem päť“): 1,75 → „jedna celá sedemdesiatpäť“, 2,5 → „dve celé päť“, 5,5 → „päť celých päť“, 0,75 → „nula celá sedemdesiatpäť“, 4,50 € → „štyri eurá päťdesiat“. Na obrazovke nechaj čísla normálne číslicami.
 - `send_tts_response` volaj **predtým**, než sa zobrazí dlhšia textová odpoveď.
 
 **Tooly**
